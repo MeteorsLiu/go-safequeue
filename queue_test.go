@@ -10,10 +10,10 @@ func TestQueue(t *testing.T) {
 	}
 	for {
 		v, ok := q.Pop()
+		t.Log(v)
 		if !ok {
-			t.Log("End")
+			t.Log("return")
 			return
 		}
-		t.Log(v)
 	}
 }
