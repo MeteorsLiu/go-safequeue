@@ -17,7 +17,7 @@ type Queue[T any] struct {
 	len  int32
 }
 
-func New[T any](value T) *Queue[T] {
+func New[T any]() *Queue[T] {
 	head := &elem[T]{}
 	return &Queue[T]{head, head, 0}
 }
