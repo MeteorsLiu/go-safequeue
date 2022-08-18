@@ -51,20 +51,21 @@ func (q *Queue[T]) Push(value T) bool {
 	}
 	// if CAS fail, some goroutine may enquenue
 	// so do a retry-loop
-	if p != nil {
-		oldp := p
-		for p.next != nil {
-			p = p.next
-		}
+	/*
+		if p != nil {
+			oldp := p
+			for p.next != nil {
+				p = p.next
+			}
 
-		for !atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&p.next)), nil, new) {
-		}
+			for !atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&p.next)), nil, new) {
+			}
 
-		if atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(oldp), new) {
-			atomic.AddInt32(&q.len, 1)
-			return true
-		}
-	}
+			if atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(oldp), new) {
+				atomic.AddInt32(&q.len, 1)
+				return true
+			}
+		}*/
 	return false
 }
 
@@ -76,7 +77,7 @@ func (q *Queue[T]) Pop() (ret T, ok bool) {
 		if (*elem[T])(p).next == nil {
 			return
 		}
-		if atomic.CompareAndSwapPointer(&p, p, unsafe.Pointer((*elem[T])(p).next)) {
+		if atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&q.head)), p, unsafe.Pointer((*elem[T])(p).next)) {
 			break
 		}
 	}
