@@ -24,34 +24,46 @@ func New[T any]() *Queue[T] {
 
 // Enqueue
 func (q *Queue[T]) Push(value T) bool {
+	// pointer to the next element
+	var next *unsafe.Pointer
+	var _next *elem[T]
 	// we must read the pointer address carefully
 	// so read it atomically
-	var next *unsafe.Pointer
-	tail := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(q.tail)))
-	if atomic.LoadInt32(&q.len) == 0 {
-		next = &tail
-	} else {
-		next = (*unsafe.Pointer)(unsafe.Pointer((*elem[T])(tail).next))
-	}
+	tail := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&q.tail)))
 	new := unsafe.Pointer(&elem[T]{value: value})
-	for !atomic.CompareAndSwapPointer(next, nil, new) {
-	}
-	if atomic.CompareAndSwapPointer(next, *next, new) {
-		atomic.AddInt32(&q.len, 1)
-		return true
-	}
-	// if CAS fail, some goroutine may enquenue
-	// so do Retry-loop
-	for (*elem[T])(tail).next != nil {
-		tail = atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer((*elem[T])(tail).next)))
-	}
-	next = (*unsafe.Pointer)(unsafe.Pointer((*elem[T])(tail).next))
-	for !atomic.CompareAndSwapPointer(next, nil, new) {
+	done := false
+	// Repeat until CAS is true
+	for !done {
+		// p = tail
+		_next = (*elem[T])(tail).next
+		// pointer to the pointer to the next element, which avoids golang panic when the next pointer is nil
+		next = (*unsafe.Pointer)(unsafe.Pointer(&_next))
+		done = atomic.CompareAndSwapPointer(next, nil, new)
+		// Avoid panic
+		if _next != nil && !done {
+			atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(&_next), unsafe.Pointer(&_next.next))
+		}
 	}
 
 	if atomic.CompareAndSwapPointer(next, *next, new) {
 		atomic.AddInt32(&q.len, 1)
 		return true
+	}
+	// if CAS fail, some goroutine may enquenue
+	// so do a retry-loop
+	if _next != nil {
+		oldnext := _next
+		for _next.next != nil {
+			_next = _next.next
+		}
+
+		for !atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&_next.next)), nil, new) {
+		}
+
+		if atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(oldnext), new) {
+			atomic.AddInt32(&q.len, 1)
+			return true
+		}
 	}
 	return false
 }
@@ -60,11 +72,11 @@ func (q *Queue[T]) Push(value T) bool {
 func (q *Queue[T]) Pop() (ret T, ok bool) {
 	var p unsafe.Pointer
 	for {
-		p = atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(q.head)))
+		p = atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&q.head)))
 		if (*elem[T])(p).next == nil {
 			return
 		}
-		if !atomic.CompareAndSwapPointer(&p, p, unsafe.Pointer((*elem[T])(p).next)) {
+		if atomic.CompareAndSwapPointer(&p, p, unsafe.Pointer((*elem[T])(p).next)) {
 			break
 		}
 	}
