@@ -29,7 +29,7 @@ func (q *Queue[T]) Push(value T) bool {
 	var next *unsafe.Pointer
 	tail := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(q.tail)))
 	if atomic.LoadInt32(&q.len) == 0 {
-		next = (*unsafe.Pointer)(tail)
+		next = &tail
 	} else {
 		next = (*unsafe.Pointer)(unsafe.Pointer((*elem[T])(tail).next))
 	}
