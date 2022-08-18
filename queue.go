@@ -45,7 +45,7 @@ func (q *Queue[T]) Push(value T) bool {
 		}
 	}
 
-	if atomic.CompareAndSwapPointer(next, *next, new) {
+	if atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), *next, new) {
 		atomic.AddInt32(&q.len, 1)
 		return true
 	}
