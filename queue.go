@@ -26,7 +26,7 @@ func New[T any]() *Queue[T] {
 func (q *Queue[T]) Push(value T) bool {
 	// pointer to the next element
 	var next *unsafe.Pointer
-	var _next *elem[T]
+	var p *elem[T]
 	// we must read the pointer address carefully
 	// so read it atomically
 	tail := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&q.tail)))
@@ -35,13 +35,13 @@ func (q *Queue[T]) Push(value T) bool {
 	// Repeat until CAS is true
 	for !done {
 		// p = tail
-		_next = (*elem[T])(tail).next
+		p = (*elem[T])(tail)
 		// pointer to the pointer to the next element, which avoids golang panic when the next pointer is nil
-		next = (*unsafe.Pointer)(unsafe.Pointer(&_next))
+		next = (*unsafe.Pointer)(unsafe.Pointer(&p.next))
 		done = atomic.CompareAndSwapPointer(next, nil, new)
 		// Avoid panic
-		if _next != nil && !done {
-			atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(_next), unsafe.Pointer(&_next.next))
+		if p != nil && !done {
+			atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(p), *next)
 		}
 	}
 
@@ -51,16 +51,16 @@ func (q *Queue[T]) Push(value T) bool {
 	}
 	// if CAS fail, some goroutine may enquenue
 	// so do a retry-loop
-	if _next != nil {
-		oldnext := _next
-		for _next.next != nil {
-			_next = _next.next
+	if p != nil {
+		oldp := p
+		for p.next != nil {
+			p = p.next
 		}
 
-		for !atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&_next.next)), nil, new) {
+		for !atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&p.next)), nil, new) {
 		}
 
-		if atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(oldnext), new) {
+		if atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(oldp), new) {
 			atomic.AddInt32(&q.len, 1)
 			return true
 		}
