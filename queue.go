@@ -41,7 +41,7 @@ func (q *Queue[T]) Push(value T) bool {
 		done = atomic.CompareAndSwapPointer(next, nil, new)
 		// Avoid panic
 		if _next != nil && !done {
-			atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(&_next), unsafe.Pointer(&_next.next))
+			atomic.CompareAndSwapPointer((*unsafe.Pointer)(tail), unsafe.Pointer(_next), unsafe.Pointer(&_next.next))
 		}
 	}
 
