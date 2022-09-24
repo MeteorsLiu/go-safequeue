@@ -57,6 +57,14 @@ func generateSlice(num int) []int {
 	return s
 }
 
+func generateQueue(num int) *Queue[int] {
+	q := New[int]()
+	for i := 0; i < num; i++ {
+		q.Push(i)
+	}
+	return q
+}
+
 func BenchmarkGoMutexInsert(b *testing.B) {
 	var lock sync.Mutex
 	var wg sync.WaitGroup
@@ -74,6 +82,23 @@ func BenchmarkGoMutexInsert(b *testing.B) {
 	}
 }
 
+func BenchmarkGoMutexRead(b *testing.B) {
+	var lock sync.Mutex
+	var wg sync.WaitGroup
+	s := generateSlice(b.N)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		wg.Add(1)
+		go func() {
+			lock.Lock()
+			defer lock.Unlock()
+			defer wg.Done()
+			s = s[1:]
+		}()
+	}
+}
+
 func BenchmarkLockFreeInsert(b *testing.B) {
 	var wg sync.WaitGroup
 	q := New[int]()
@@ -84,6 +109,20 @@ func BenchmarkLockFreeInsert(b *testing.B) {
 		go func() {
 			defer wg.Done()
 			q.Push(rand.Int())
+		}()
+	}
+}
+
+func BenchmarkLockFreeRead(b *testing.B) {
+	var wg sync.WaitGroup
+	s := generateQueue(b.N)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.Pop()
 		}()
 	}
 }
