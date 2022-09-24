@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"math/rand"
 	"sync"
 	"testing"
 )
@@ -48,6 +49,41 @@ func TestQueueParallel(t *testing.T) {
 	}
 }
 
-func BenchmarkGoMutex(b *testing.B) {
+func generateSlice(num int) []int {
+	s := make([]int, num)
+	for i := 0; i < num; i++ {
+		s = append(s, i)
+	}
+	return s
+}
 
+func BenchmarkGoMutexInsert(b *testing.B) {
+	var lock sync.Mutex
+	var wg sync.WaitGroup
+	var s []int
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		wg.Add(1)
+		go func() {
+			lock.Lock()
+			defer lock.Unlock()
+			defer wg.Done()
+			s = append(s, rand.Int())
+		}()
+	}
+}
+
+func BenchmarkLockFreeInsert(b *testing.B) {
+	var wg sync.WaitGroup
+	q := New[int]()
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			q.Push(rand.Int())
+		}()
+	}
 }
