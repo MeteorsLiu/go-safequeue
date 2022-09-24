@@ -47,3 +47,7 @@ func TestQueueParallel(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkGoMutex(b *testing.B) {
+
+}
