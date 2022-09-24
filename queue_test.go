@@ -26,8 +26,8 @@ func TestQueueParallel(t *testing.T) {
 	tq := []int{1, 3, 5, 7, 9}
 	q := New[int]()
 	var wg sync.WaitGroup
+	wg.Add(len(tq))
 	for _, v := range tq {
-		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			q.Push(v)
