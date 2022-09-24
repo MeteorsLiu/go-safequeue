@@ -80,6 +80,7 @@ func BenchmarkGoMutexInsert(b *testing.B) {
 			s = append(s, rand.Int())
 		}()
 	}
+	wg.Wait()
 }
 
 func BenchmarkGoMutexRead(b *testing.B) {
@@ -97,6 +98,7 @@ func BenchmarkGoMutexRead(b *testing.B) {
 			s = s[1:]
 		}()
 	}
+	wg.Wait()
 }
 
 func BenchmarkLockFreeInsert(b *testing.B) {
@@ -111,6 +113,7 @@ func BenchmarkLockFreeInsert(b *testing.B) {
 			q.Push(rand.Int())
 		}()
 	}
+	wg.Wait()
 }
 
 func BenchmarkLockFreeRead(b *testing.B) {
@@ -122,7 +125,8 @@ func BenchmarkLockFreeRead(b *testing.B) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			s.Pop()
+			_, _ = s.Pop()
 		}()
 	}
+	wg.Wait()
 }
