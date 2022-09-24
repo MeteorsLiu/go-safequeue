@@ -28,16 +28,16 @@ func (q *Queue[T]) Push(value T) {
 		value: value,
 	}
 	succ := false
-	var p atomic.Pointer[elem[T]]
+	var p *elem[T]
 	for !succ {
-		p = q.tail
-		if !p.Load().next.CompareAndSwap(nil, newq) {
-			q.tail.CompareAndSwap(p.Load(), p.Load().next.Load())
+		p = q.tail.Load()
+		if !p.next.CompareAndSwap(nil, newq) {
+			q.tail.CompareAndSwap(p, p.next.Load())
 		} else {
 			succ = true
 		}
 	}
-	if ok := q.tail.CompareAndSwap(p.Load(), newq); ok {
+	if ok := q.tail.CompareAndSwap(p, newq); ok {
 		_ = atomic.AddInt32(&q.len, 1)
 	}
 }
@@ -45,15 +45,15 @@ func (q *Queue[T]) Push(value T) {
 // Dequeue
 func (q *Queue[T]) Pop() (ret T, ok bool) {
 	succ := false
-	var p atomic.Pointer[elem[T]]
+	var p *elem[T]
 	for !succ {
-		p = q.head
-		if p.Load().next.Load() == nil {
+		p = q.head.Load()
+		if p.next.Load() == nil {
 			return
 		}
-		succ = q.head.CompareAndSwap(p.Load(), p.Load().next.Load())
+		succ = q.head.CompareAndSwap(p, p.next.Load())
 	}
-	ret = p.Load().next.Load().value
+	ret = p.next.Load().value
 	ok = true
 	_ = atomic.AddInt32(&q.len, -1)
 	return
