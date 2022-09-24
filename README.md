@@ -1,6 +1,13 @@
 # go-safequeue
 Based on CAS Lock-Free Algorithm Queue for Go
 
+# Feature
+
+**Generic Support**
+
+**Lightweight And Fast**
+
+
 
 # Benchmark
 
@@ -15,6 +22,6 @@ BenchmarkChannelRead-8      	 3545941	       341.1 ns/op	      24 B/op	       1 
 
 # Conclusion
 
-Golang's unbuffered channel is faster than CAS Lock-free Queue.
+However, according to the benchmark result, Golang's buffered channel is faster than CAS Lock-free Queue.
 
-I recommend you to use golang's unbuffered channel as the queue.
+I recommend you to use golang's buffered channel as the queue.
