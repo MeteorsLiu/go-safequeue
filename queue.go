@@ -58,3 +58,7 @@ func (q *Queue[T]) Pop() (ret T, ok bool) {
 	_ = atomic.AddInt32(&q.len, -1)
 	return
 }
+
+func (q *Queue[T]) Len() int32 {
+	return atomic.LoadInt32(&q.len)
+}

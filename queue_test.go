@@ -27,12 +27,15 @@ func TestQueueParallel(t *testing.T) {
 	q := New[int]()
 	var wg sync.WaitGroup
 	wg.Add(len(tq))
+	id := make(chan int)
 	for _, v := range tq {
 		go func() {
 			defer wg.Done()
-			q.Push(v)
+			goID := <-id
+			q.Push(goID)
+			t.Logf("Push %d, Len: %d", goID, q.Len())
 		}()
-		t.Logf("Push %d", v)
+		id <- v
 	}
 	wg.Wait()
 	for {
