@@ -39,23 +39,6 @@ func (q *Queue[T]) Push(value T) {
 	}
 	if ok := q.tail.CompareAndSwap(p, newq); ok {
 		_ = atomic.AddInt32(&q.len, 1)
-	} else {
-		// do a retry loop
-		oldp := p
-		succ = false
-		for !succ {
-			next := p.next.Load()
-			if next != nil {
-				p = next
-			} else {
-				// next == nil
-				succ = true
-			}
-		}
-		for !p.next.CompareAndSwap(nil, newq) {
-			// wait until...
-		}
-		q.tail.CompareAndSwap(oldp, newq)
 	}
 }
 
