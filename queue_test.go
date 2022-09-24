@@ -65,6 +65,13 @@ func generateQueue(num int) *Queue[int] {
 	return q
 }
 
+func generateChan(num int) chan int {
+	q := make(chan int, num)
+	for i := 0; i < num; i++ {
+		q <- i
+	}
+	return q
+}
 func BenchmarkGoMutexInsert(b *testing.B) {
 	var lock sync.Mutex
 	var wg sync.WaitGroup
@@ -116,6 +123,35 @@ func BenchmarkLockFreeInsert(b *testing.B) {
 	wg.Wait()
 }
 
+func BenchmarkChannelInsert(b *testing.B) {
+	var wg sync.WaitGroup
+	q := make(chan int, b.N)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			q <- rand.Int()
+		}()
+	}
+	wg.Wait()
+}
+
+func BenchmarkChannelRead(b *testing.B) {
+	var wg sync.WaitGroup
+	q := generateChan(b.N)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-q
+		}()
+	}
+	wg.Wait()
+}
 func BenchmarkLockFreeRead(b *testing.B) {
 	var wg sync.WaitGroup
 	s := generateQueue(b.N)
