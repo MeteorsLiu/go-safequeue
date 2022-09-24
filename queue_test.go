@@ -123,20 +123,6 @@ func BenchmarkLockFreeInsert(b *testing.B) {
 	wg.Wait()
 }
 
-func BenchmarkChannelInsert(b *testing.B) {
-	var wg sync.WaitGroup
-	q := make(chan int, b.N)
-	b.ResetTimer()
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			q <- rand.Int()
-		}()
-	}
-	wg.Wait()
-}
 func BenchmarkLockFreeRead(b *testing.B) {
 	var wg sync.WaitGroup
 	s := generateQueue(b.N)
@@ -152,6 +138,21 @@ func BenchmarkLockFreeRead(b *testing.B) {
 	wg.Wait()
 }
 
+func BenchmarkChannelInsert(b *testing.B) {
+	var wg sync.WaitGroup
+	q := make(chan int, b.N)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			q <- rand.Int()
+		}()
+	}
+	wg.Wait()
+}
+
 func BenchmarkChannelRead(b *testing.B) {
 	var wg sync.WaitGroup
 	q := generateChan(b.N)
@@ -161,7 +162,7 @@ func BenchmarkChannelRead(b *testing.B) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			<-q
+			_ = <-q
 		}()
 	}
 	wg.Wait()
